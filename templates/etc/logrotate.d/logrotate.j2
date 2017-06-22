@@ -1,0 +1,121 @@
+# template path: ../templates/etc/logrotate.d/
+# file for : /etc/logrotate.d
+#
+# ANSIBLE MANAGED
+{# set master variable : vr_logrotate #}
+{# set vr_logrotate_location == location to rotate #}
+{# set vr_logrotate_interval == var_role / var_task - default daily #}
+{# set vr_logrotate_compression_enable == yes/no options - default yes#}
+{# set vr_logrotate_compression_command == var_role/var_task - default  #}
+{# set vr_logrotate_compression_options == .. #}
+{# set vr_logrotate_extension == .. #}
+{# set vr_logrotate_method == copy/nocopy/copytruncate/nocopytruncate - default copytruncate #}
+{# set vr_logrotate_create: 
+	owner:	..
+	group:  ..
+	mode:   .. #}
+{# set vr_logrotate_mail:
+	address: ..
+	what_to_mail: <<mailfirst/maillast>> - default maillast #}
+{# set vr_logrotate_missingok: yes/no #}
+{# set vr_logrotate_olddir: <<path_to_move_the_old_logs>> #}
+{# set vr_logrotate_postrotate: 
+		- '<<lines>>' #}
+{# set vr_logrotate_prerotate: 
+		- '<<lines>>' #}
+{# set vr_logrotate_lastaction
+		- '<<lines>>' #}
+{# set vr_logrotate_rtcount == 5 default #}
+{# set vr_logrotate_size == 100M default #}
+
+{% for vr in vr_logrotate %}
+{{vr.vr_logrotate_location}}{
+{% if vr.vr_logrotate_interval is defined and ( vr.vr_logrotate_interval == 'daily' or vr.vr_logrotate_interval == 'weekly' or vr.vr_logrotate_interval == 'mothly' ) %}
+  {{vr.vr_logrotate_interval}}
+{% else %}
+  weekly
+{% endif %}
+{% if vr.vr_logrotate_compression_enable is defined and vr.vr_logrotate_compression_enable == 'yes'%}
+  compress
+{% if vr.vr_logrotate_compression_command is defined and vr.vr_logrotate_compression_command is not none and not '__omit_place_holder__' in vr.vr_logrotate_compression_command %}
+  compresscmd {{vr.vr_logrotate_compression_command}}
+{% if vr.vr_logrotate_compression_options is defined and vr.vr_logrotate_compression_options is not none  not '__omit_place_holder__' in vr.vr_logrotate_compression_options %}
+  compressoptions {{vr.vr_logrotate_compression_options}}
+{% endif %}
+{% endif %}
+{% elif vr.vr_logrotate_compression_enable is defined and vr.vr_logrotate_compression_enable == 'no' %}
+   nocompress
+{% else %}
+  compress
+{% if vr.vr_logrotate_compression_command is defined and vr.vr_logrotate_compression_command is not none %}
+   compresscmd {{vr.vr_logrotate_compression_command}}
+{% if vr.vr_logrotate_compression_options is defined and vr.vr_logrotate_compression_options is not none %}
+   compressoptions {{vr.vr_logrotate_compression_options}}
+{% endif %}
+{% endif %}
+{% endif %}
+{% if vr.vr_logrotate_method is defined and vr.vr_logrotate_method is not none and ( vr.vr_logrotate_method == 'copy' or vr.vr_logrotate_method == 'copytruncate' or vr.vr_logrotate_method == 'nocopy' or vr.vr_logrotate_method == 'nocopytruncate' ) %}
+  {{vr.vr_logrotate_method}}
+{% else %}
+  copytruncate
+{% endif %}
+{% if vr.vr_logrotate_method is defined and vr.vr_logrotate_method == 'copy' %}
+{% if vr.vr_logrotate_create is defined %}
+  create {{vr.vr_logrotate_create.mode|default(omit)}} {{vr.vr_logrotate_create.owner|default(omit)}} {{vr.vr_logrotate_create.group|default(omit)}}	
+{% endif %}
+{% endif %}
+{% if vr.vr_logrotate_extension is defined and vr.vr_logrotate_extension is not none and not '__omit_place_holder__' in vr.vr_logrotate_extension %}
+  extensions {{vr.vr_logrotate_extension}}
+{% endif %}
+{% if vr.vr_logrotate_mail is defined and vr.vr_logrotate_mail is not none and vr.vr_logrotate_mail.address is defined and vr.vr_logrotate_mail.address is not none %}
+  mail {{vr.vr_logrotate_mail.address}}
+{% if vr.vr_logrotate_mail.what_to_mail is defined and vr.vr_logrotate_mail.what_to_mail is not none and ( vr.vr_logrotate_mail.what_to_mail == 'mailfirst' or vr.vr_logrotate_mail.what_to_mail == 'maillast' ) %}
+  {{vr.vr_logrotate_mail.what_to_mail}}
+{% endif %}
+{% endif %}
+{% if vr.vr_logrotate_missingok is defined and vr.vr_logrotate_missingok == 'yes' %}
+  missingok
+{% else %}
+  nomissingok
+{% endif %}
+{% if vr.vr_logrotate_olddir is defined and vr.vr_logrotate_olddir is not none and not '__omit_place_holder__' in vr.vr_logrotate_olddir %}
+  olddir {{vr.vr_logrotate_olddir}}
+{% endif %}
+{% if vr.vr_logrotate_postrotate is defined and vr.vr_logrotate_postrotate is not none and not '__omit_place_holder__' in vr.vr_logrotate_postrotate %}
+  postrotate
+{% for value in vr.vr_logrotate_postrotate %}
+         {{value}}
+{% endfor %}
+  endscript
+{% endif %}
+{% if vr.vr_logrotate_prerotate is defined and vr.vr_logrotate_prerotate is not none  and not '__omit_place_holder__' in vr.vr_logrotate_prerotate %}
+  prerotate
+{% for value in vr.vr_logrotate_prerotate %}
+         {{value}}
+{% endfor %}
+  endscript
+{% endif %}
+{% if vr.vr_logrotate_lastaction is defined and vr.vr_logrotate_lastaction is not none  and not '__omit_place_holder__' in vr.vr_logrotate_lastaction %}
+  lastaction
+{% for value in vr.vr_logrotate_lastaction %}
+         {{value}}
+{% endfor %}
+  endscript
+{% endif %}
+{% if vr.vr_logrotate_rtcount is defined and vr.vr_logrotate_rtcount|int %}
+  rotate {{vr.vr_logrotate_rtcount}}
+{% else %}
+  rotate 5
+{% endif %}
+{% if vr.vr_logrotate_size is defined and vr.vr_logrotate_size is not none  and not '__omit_place_holder__' in vr.vr_logrotate_size %}
+  size {{vr.vr_logrotate_size}}
+{% else %}
+  size 5
+{% endif %}
+{% if vr.vr_logrotate_sharedscripts is defined and vr.vr_logrotate_sharedscripts == 'yes' %}
+  sharedscripts
+{% endif %}
+}
+{% endfor %}
+
+

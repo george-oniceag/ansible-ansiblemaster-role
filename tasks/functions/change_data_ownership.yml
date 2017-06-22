@@ -1,0 +1,58 @@
+# ../files/functions/change_data_ownership.yml
+#
+# !!! USAGE !!!
+# function dictionary:
+#       change_data_ownership_dict:
+#               location: <<directory_to_apply_function>>
+#               owner:    <<owner_to_change_to>>
+#               group:    <<group_to_change_to>>
+#               file_type: <<file/link/directory/hard/touch/absent/any>> default any
+#               recurse:   <<yes/no>> default yes
+#               mode:      <<xxxx>> default omit
+#
+# Intended to change owner and group on all files in the specified directory
+
+# FAIL if change_data_ownership_dict is not defined
+- name: 'FAIL if change_data_ownership_dict is not defined'
+  fail:
+        msg: "ERROR !!! change_data_ownership_dict Dict is not defined !!!"
+  when: change_data_ownership_dict is not defined or change_data_ownership_dict is none
+
+# FAIL if location is not defined or data is null
+- name: 'FAIL if change_data_ownership_dict.location is not defined or data is null'
+  fail:
+        msg: "ERROR !!! change_data_ownership_dict.location element is not defined or data is none!!!"
+  when: change_data_ownership_dict.location is not defined or change_data_ownership_dict.location.location is none
+
+# FAIL if owner is not defined or data is null
+- name: 'FAIL if owner is not defined or data is null'
+  fail:
+        msg: "ERROR !!! change_data_ownership_dict.owner is not defined or data is null"
+  when: change_data_ownership_dict.owner is not defined or change_data_ownership_dict.owner is none
+
+# FAIL if file_type is not correctly defined or data is null
+- name: 'FAIL if file_type is not correctly defined or data is null'
+  fail:
+        msg: "ERROR !!! change_data_ownership_dict.file_type is not correctly defined - :{{change_data_ownership_dict.file_type}}: - please provide one of the options : <<file/link/directory/hard/touch/absent/any>>"
+  when: 
+        - change_data_ownership_dict.file_type is defined 
+        - change_data_ownership_dict.file_type is none or ( not change_data_ownership_dict.file_type == "file" and not change_data_ownership_dict.file_type == "link" and not change_data_ownership_dict.file_type == "directory" and not change_data_ownership_dict.file_type == "hard" and not change_data_ownership_dict.file_type == "touch" and not change_data_ownership_dict.file_type == "absent" and not change_data_ownership_dict.file_type == "any" )
+
+# FAIL if recurse is not correctly defined or data is null
+- name: 'FAIL if recurse is not correctly defined or data is null'
+  fail:
+        msg: "ERROR !!! change_data_ownership_dict.recurse is not correctly defined - :{{change_data_ownership_dict.recurse}}: - please provide one of the options: yes/no"
+  when: 
+        - change_data_ownership_dict.recurse is defined
+        - change_data_ownership_dict.recurse is none or ( not change_data_ownership_dict.recurse == "yes" and not change_data_ownership_dict.recurse == "no" )
+
+# GET content of directory /etc/ansible for data check
+- name: 'Get files from {{change_data_ownership_dict.location}} for ownership change'
+  find: file_type={{change_data_ownership_dict.file_type|default('any')}} path={{change_data_ownership_dict.location}} recurse={{change_data_ownership_dict.recurse|default('yes')}} mode={{change_data_ownership_dict.mode|default(omit)}}
+  register: fct_content_dir
+
+# CHECK & ADAPT the permissions of the contets of the /etc/ansible directory
+- name: 'Adapt permissions to /etc/ansible/* files'
+  file: dest={{item.path}} owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}}
+  with_items: "{{fct_content_dir.files}}"
+

@@ -1,0 +1,62 @@
+# Configure USER
+- name: 'Include Ansible USER config task set'
+  include: subtasks/config_ansible_user.yml
+  tags: ['ansible-configure-user']
+
+# CREATE the ansible directory structure
+- name: Define directory structure
+  vars:
+        ansible_path: '/etc/ansible/'
+  file: dest={{ansible_path}}{{item}} owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}} recurse=yes state=directory mode=0774
+  with_items:
+        - 'projects/production'
+        - 'projects/staging'
+        - 'projects/dev'
+        - 'inventory/production'
+        - 'inventory/staging'
+        - 'inventory/dev'
+        - 'library'
+        - 'filter_plugins'
+        - 'group_vars'
+        - 'host_vars'
+        - 'vault'
+        - 'module_utils'
+  tags: ['ansible-configure-structure']
+
+# CREATE the ansible custom directory structure
+- name: Define custom directory structure
+  file: dest={{item}} owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}} recurse=yes state=directory mode=0774
+  with_items: 
+        - "{{var_ansible_mylibrary}}"
+        - "{{var_ansible_module_utils}}"
+  when: item is not none
+  tags: ['ansible-configure-structure']
+
+# CHECK & ADAPT the permissions on the /etc/ansible directory so that the ansible user can modify data
+- name: 'Adapt permissions to /etc/ansible directory'
+  file: dest={{conf_ansible_user_home|default('/etc/ansible')}} owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}} recurse=yes
+  tags: ['ansible-configure-structure']
+
+# CHECK & ADAPT the permissions on all of the files in /etc/ansible directory so that the ansible user can modify data 
+- name: 'Include change_data_ownership functino'
+  vars: 
+        change_data_ownership_dict:
+                location: '/etc/ansible'
+                owner: "{{conf_ansible_user|default('ansible')}}"
+                group: "{{conf_ansible_group|default('ansible')}}"
+                file_type: "any"
+  include: functions/change_data_ownership.yml
+  tags: ['ansible-configure-structure']
+
+# CHECK & ADAPT ansible.cfg file 
+- name: 'CHECK & ADAPT /etc/ansible.cfg file - general configuration file'
+  template: src=etc/ansible/ansible.cfg.j2 dest=/etc/ansible/ansible.cfg owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}} mode=0774
+  tags: ['ansible-configure-structure','ansible-config-file']
+
+# INCLUDE logging configuration tasks
+- name: 'Include logrotate tasks'
+  include: "{{ansible_os_family|lower}}_logging_config.yml"
+  when: var_ansible_log_path is defined
+  tags: ['ansible_configure_logging']
+
+

@@ -1,0 +1,24 @@
+- name: Check for epel repository
+  stat: path={{repo_epel_path}}
+  register: ck_repo_epel_path
+
+- name: Install EPEL repository
+  yum: name={{repo_epel_url}} state=present
+  register: ck_repo_epel_install
+  when: ck_repo_epel_path.stat.exists == false
+
+- block:
+  - name: Disable persistent EPEL repository
+    replace:
+        path: "{{repo_epel_path}}"
+        regexp: "^enabled=1"
+        replace: 'enabled=0'
+  
+  - name: Install Ansible related pkgs
+    yum: name={{item}} state=present enablerepo=epel
+    with_items:
+        - ansible
+        - shadow-utils
+        - logrotate
+
+  when: ck_repo_epel_path.stat.exists == true or ck_repo_epel_install|changed

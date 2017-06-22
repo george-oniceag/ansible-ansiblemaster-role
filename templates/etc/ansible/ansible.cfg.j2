@@ -1,0 +1,575 @@
+# config file for ansible -- https://ansible.com/
+# ===============================================
+
+# nearly all parameters can be overridden in ansible-playbook
+# or with command line flags. ansible will read ANSIBLE_CONFIG,
+# ansible.cfg in the current working directory, .ansible.cfg in
+# the home directory or /etc/ansible/ansible.cfg, whichever it
+# finds first
+
+[defaults]
+
+# some basic default values...
+inventory      = {{var_ansible_inventory|default('/etc/ansible/hosts')}}
+library        = {{var_ansible_mylibrary|default('/etc/ansible/library')}}
+module_utils   = {{var_ansible_module_utils|default('/etc/ansible/module_utils')}}
+remote_tmp     = ~/.{{var_ansible_remote_tmp|default('ansible/tmp')}}
+local_tmp      = ~/.{{var_ansible_local_tmp|default('ansible/tmp')}}
+{% if var_ansible_forks is defined and var_ansible_forks|int %}
+forks          = {{var_ansible_forks}}
+{% else %}
+forks          = 10
+{% endif %}
+{% if var_ansible_poll_interval is defined and var_ansible_poll_interval|int %}
+poll_interval  = {{var_ansible_poll_interval}}
+{% else %}
+poll_interval  = 15
+{% endif %}
+sudo_user      = {{var_ansible_sudo_user|default('root')}}
+ask_sudo_pass  = {{var_ansible_ask_sudo_pass|default('False')}}
+ask_pass       = {{var_ansible_ask_pass|default('False')}}
+transport      = {{var_ansible_transport|default('smart')}}
+{% if var_ansible_remote_port is defined and var_ansible_remote_port|int %}
+remote_port    = {{var_ansible_remote_port}}
+{% else %}
+remote_port    = 22
+{% endif %}
+module_lang    = C
+module_set_locale = False
+
+# plays will gather facts by default, which contain information about
+# the remote system.
+#
+# smart - gather by default, but don't regather if already gathered
+# implicit - gather by default, turn off with gather_facts: False
+# explicit - do not gather by default, must say gather_facts: True
+gathering = {{var_ansible_gathering|default('implicit')}}
+
+# This only affects the gathering done by a play's gather_facts directive,
+# by default gathering retrieves all facts subsets
+# all - gather all subsets
+# network - gather min and network facts
+# hardware - gather hardware facts (longest facts to retrieve)
+# virtual - gather min and virtual facts
+# facter - import facts from facter
+# ohai - import facts from ohai
+# You can combine them using comma (ex: network,virtual)
+# You can negate them using ! (ex: !hardware,!facter,!ohai)
+# A minimal set of facts is always gathered.
+gather_subset = {{var_ansible_gather_subset|default('all')}}
+
+# some hardware related facts are collected
+# with a maximum timeout of 10 seconds. This
+# option lets you increase or decrease that
+# timeout to something more suitable for the
+# environment. 
+{% if var_ansible_gather_timeout|int %}
+gather_timeout = {{var_ansible_gather_timeout}}
+{% else %}
+gather_timeout = 10
+{% endif %}
+
+# additional paths to search for roles in, colon separated
+{% if var_ansible_role_path is defined and var_ansible_role_path is not string and var_ansible_role_path is iterable %}
+roles_path    = {{var_ansible_role_path|join(',')}}
+{% elif var_ansible_role_path is defined and var_ansible_role_path is not none %}
+roles_path    = {{var_ansible_role_path}}
+{% else %}
+roles_path    = /etc/ansible/role
+{% endif %}
+
+# uncomment this to disable SSH key host checking
+{% if var_ansible_host_key_checking is defined and ( var_ansible_host_key_checking == 'False' or var_ansible_host_key_checking == 'True' ) %}
+host_key_checking = {{var_ansible_host_key_checking}}
+{% else %}
+host_key_checking = False
+{% endif %}
+
+# change the default callback
+#stdout_callback = skippy
+# enable additional callbacks
+#callback_whitelist = timer, mail
+
+# Determine whether includes in tasks and handlers are "static" by
+# default. As of 2.0, includes are dynamic by default. Setting these
+# values to True will make includes behave more like they did in the
+# 1.x versions.
+{% if var_ansible_task_includes_static is defined and ( var_ansible_task_includes_static == False or var_ansible_task_includes_static == True ) %}
+task_includes_static = {{var_ansible_task_includes_static}}
+{% else %}
+task_includes_static = False
+{% endif %}
+{% if var_ansible_handler_includes_static is defined and ( var_ansible_handler_includes_static == False or var_ansible_handler_includes_static == True ) %}
+handler_includes_static = {{var_ansible_handler_includes_static}}
+{% else %}
+handler_includes_static = False
+{% endif %}
+
+# Controls if a missing handler for a notification event is an error or a warning
+{% if var_ansible_error_on_missing_handler is defined and ( var_ansible_error_on_missing_handler == False or var_ansible_error_on_missing_handler == True ) %}
+error_on_missing_handler = {{var_ansible_error_on_missing_handler}}
+{% else %}
+error_on_missing_handler = True
+{% endif %}
+
+# change this for alternative sudo implementations
+sudo_exe = {{var_ansible_sudo_exe|default('sudo')}}
+
+# What flags to pass to sudo
+# WARNING: leaving out the defaults might create unexpected behaviours
+{% if var_ansible_sudo_flags is defined and var_ansible_sudo_flags is not string and var_ansible_sudo_flags is iterable %}
+sudo_flags = {{var_ansible_sudo_flags|join(' ')}}
+{% elif var_ansible_sudo_flags is defined and var_ansible_sudo_flags is not none %}
+sudo_flags = {{var_ansible_sudo_flags}}
+{% else %}
+#sudo_flags = -H -S -n
+{% endif %}
+
+# SSH timeout
+{% if var_ansible_ssh_timeout is defined and var_ansible_ssh_timeout|int %}
+timeout = {{var_ansible_ssh_timeout}}
+{% else %}
+timeout = 10
+{% endif %}
+
+# default user to use for playbooks if user is not specified
+# (/usr/bin/ansible will use current user as default)
+{% if conf_ansible_user is defined and conf_ansible_user is not none %}
+remote_user = {{conf_ansible_user}}
+{% else %}
+remote_user = ansible
+{% endif %}
+
+# logging is off by default unless this path is defined
+# if so defined, consider logrotate
+{% if var_ansible_log_path is defined and var_ansible_log_path is not none %}
+{% if var_ansible_log_name is defined and var_ansible_log_name is not none %}
+log_path = {{var_ansible_log_path}}/{{var_ansible_log_name}}.log
+{% else %}
+log_path = {{var_ansible_log_path}}/ansible.log
+{% endif %}
+{% else %}
+#log_path = /var/log/ansible.log
+{% endif %}
+
+# default module name for /usr/bin/ansible
+{% if var_ansible_module_name is defined and var_ansible_module_name is not none %}
+module_name = {{var_ansible_module_name}}
+{% else %}
+#module_name = command
+{% endif %}
+
+# use this shell for commands executed under sudo
+# you may need to change this to bin/bash in rare instances
+# if sudo is constrained
+{% if var_ansible_executable is defined and var_ansible_executable is not none %}
+executable = {{var_ansible_executable}}
+{% else %}
+#executable = /bin/sh
+{% endif %}
+
+{% if var_ansible_hash_behaviour is defined and ( var_ansible_hash_behaviour == 'merge' or var_ansible_hash_behaviour == 'replace' ) %}
+# if inventory variables overlap, does the higher precedence one win
+# or are hash values merged together?  The default is 'replace' but
+# this can also be set to 'merge'.
+hash_behaviour = {{var_ansible_hash_behaviour}}
+{% endif %}
+
+{% if var_ansible_private_role_vars is defined and (var_ansible_private_role_vars == 'yes' or var_ansible_private_role_vars == 'no' ) %}
+# by default, variables from roles will be visible in the global variable
+# scope. To prevent this, the following option can be enabled, and only
+# tasks and handlers within the role will see the variables there
+private_role_vars = {{var_ansible_private_role_vars}}
+{% endif %}
+
+{% if var_ansible_jinja2_extensions is defined and var_ansible_jinja2_extensions is not none %}
+# list any Jinja2 extensions to enable here:
+jinja2_extensions = {{var_ansible_jinja2_extensions}}
+{% endif %}
+
+{% if var_ansible_private_key_file is defined and var_ansible_private_key_file is not none %}
+# if set, always use this private key file for authentication, same as
+# if passing --private-key to ansible or ansible-playbook
+private_key_file = {{var_ansible_private_key_file}}
+{% endif %}
+
+{% if var_ansible_vault_password_file is defined and var_ansible_vault_password_file is not none %}
+# If set, configures the path to the Vault password file as an alternative to
+# specifying --vault-password-file on the command line.
+vault_password_file = {{var_ansible_vault_password_file}}
+{% endif %}
+
+{% if var_ansible_managed is defined and var_ansible_managed is not none %}
+# format of string {{ ansible_managed }} available within Jinja2
+# templates indicates to users editing templates files will be replaced.
+# replacing {file}, {host} and {uid} and strftime codes with proper values.
+#ansible_managed = Ansible managed: {file} modified on %Y-%m-%d %H:%M:%S by {uid} on {host}
+# {file}, {host}, {uid}, and the timestamp can all interfere with idempotence
+# in some situations so the default is a static string:
+ansible_managed = {{var_ansible_managed}}
+{% endif %}
+
+{% if var_ansible_display_skipped_hosts is defined and ( var_ansible_display_skipped_hosts == 'True' or var_ansible_display_skipped_hosts == 'False' ) %}
+# by default, ansible-playbook will display "Skipping [host]" if it determines a task
+# should not be run on a host.  Set this to "False" if you don't want to see these "Skipping"
+# messages. NOTE: the task header will still be shown regardless of whether or not the
+# task is skipped.
+display_skipped_hosts = {{var_ansible_display_skipped_hosts}}
+{% endif %}
+
+{% if var_ansible_display_args_to_stdout is defined and ( var_ansible_display_args_to_stdout == 'True' or var_ansible_display_args_to_stdout == 'False' ) %}
+# by default, if a task in a playbook does not include a name: field then
+# ansible-playbook will construct a header that includes the task's action but
+# not the task's args.  This is a security feature because ansible cannot know
+# if the *module* considers an argument to be no_log at the time that the
+# header is printed.  If your environment doesn't have a problem securing
+# stdout from ansible-playbook (or you have manually specified no_log in your
+# playbook on all of the tasks where you have secret information) then you can
+# safely set this to True to get more informative messages.
+display_args_to_stdout = {{var_ansible_display_args_to_stdout}}
+{% endif %}
+
+{% if var_ansible_error_on_undefined_vars is defined and ( var_ansible_error_on_undefined_vars == 'True' or var_ansible_error_on_undefined_vars == 'False' ) %}
+# by default (as of 1.3), Ansible will raise errors when attempting to dereference
+# Jinja2 variables that are not set in templates or action lines. Uncomment this line
+# to revert the behavior to pre-1.3.
+error_on_undefined_vars = {{var_ansible_error_on_undefined_vars}}
+{% endif %}
+
+{% if var_ansible_system_warnings is defined and ( var_ansible_system_warnings == 'True' or var_ansible_system_warnings == 'False' ) %}
+# by default (as of 1.6), Ansible may display warnings based on the configuration of the
+# system running ansible itself. This may include warnings about 3rd party packages or
+# other conditions that should be resolved if possible.
+# to disable these warnings, set the following value to False:
+system_warnings = {{var_ansible_system_warnings}}
+{% endif %}
+
+{% if var_ansible_deprecation_warnings is defined and ( var_ansible_deprecation_warnings == 'False' or var_ansible_deprecation_warnings == 'True' ) %}
+# by default (as of 1.4), Ansible may display deprecation warnings for language
+# features that should no longer be used and will be removed in future versions.
+# to disable these warnings, set the following value to False:
+deprecation_warnings = {{var_ansible_deprecation_warnings}}
+{% endif %}
+
+{% if var_ansible_command_warnings is defined and ( var_ansible_command_warnings == 'True' or var_ansible_command_warnings == 'False' ) %}
+# (as of 1.8), Ansible can optionally warn when usage of the shell and
+# command module appear to be simplified by using a default Ansible module
+# instead.  These warnings can be silenced by adjusting the following
+# setting or adding warn=yes or warn=no to the end of the command line
+# parameter string.  This will for example suggest using the git module
+# instead of shelling out to the git command.
+command_warnings = {{var_ansible_command_warnings}}
+{% endif %}
+
+
+{% if var_ansible_plugins_directories is defined and var_ansible_plugins_directories is not none %}
+# set plugin path directories here, separate with colons
+{% for key,value in var_ansible_plugins_directories.iteritems() %}
+{% if value is not string and value is iterable %}
+{{key}} = {{value|join(',')}}
+{% else %}
+{{key}} = {{value}}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+
+{% if var_ansible_strategy is defined and ( var_ansible_strategy == 'linear' or var_ansible_strategy == 'free' ) %}
+# by default, ansible will use the 'linear' strategy but you may want to try
+# another one
+strategy = {{var_ansible_strategy}}
+{% endif %}
+
+{% if var_bin_ansible_callbacks is defined and ( var_bin_ansible_callbacks == 'True' or var_bin_ansible_callbacks == 'False' ) %}
+# by default callbacks are not loaded for /bin/ansible, enable this if you
+# want, for example, a notification or logging callback to also apply to
+# /bin/ansible runs
+bin_ansible_callbacks = {{var_bin_ansible_callbacks}}
+{% endif %}
+
+{% if var_ansible_nocows is defined and var_ansible_nocows|int %}
+# don't like cows?  that's unfortunate.
+# set to 1 if you don't want cowsay support or export ANSIBLE_NOCOWS=1
+nocows = {{var_ansible_nocows}}
+{% endif %}
+
+{% if var_ansbile_cow_selection is defined and var_ansbile_cow_selection is not none %}
+# set which cowsay stencil you'd like to use by default. When set to 'random',
+# a random stencil will be selected for each task. The selection will be filtered
+# against the `cow_whitelist` option below.
+cow_selection = {{var_ansbile_cow_selection}}
+{% endif %}
+
+# when using the 'random' option for cowsay, stencils will be restricted to this list.
+# it should be formatted as a comma-separated list with no spaces between names.
+# NOTE: line continuations here are for formatting purposes only, as the INI parser
+#       in python does not support them.
+{% if var_ansible_cow_whitelist is defined and var_ansible_cow_whitelist is not none %}
+{% if var_ansible_cow_whitelist is not string and var_ansible_cow_whitelist is iterable %}
+cow_whitelist = {{var_ansible_cow_whitelist|join(',')}}
+{% else %}
+cow_whitelist = {{var_ansible_cow_whitelist}}
+{% endif %}{% endif %}
+
+{% if var_ansible_nocolor is defined and var_ansible_nocolor == 1 %}
+# don't like colors either?
+# set to 1 if you don't want colors, or export ANSIBLE_NOCOLOR=1
+nocolor = {{var_ansible_nocolor}}
+{% endif %}
+
+{% if var_ansible_fact_caching is defined and ( var_ansible_fact_caching == 'memory' or var_ansible_fact_caching == 'redis' ) %}
+# if set to a persistent type (not 'memory', for example 'redis') fact values
+# from previous runs in Ansible will be stored.  This may be useful when
+# wanting to use, for example, IP information from one group of servers
+# without having to talk to them in the same playbook run to get their
+# current IP information.
+fact_caching = {{var_ansible_fact_caching}}
+{% endif %}
+
+
+# retry files
+# When a playbook fails by default a .retry file will be created in ~/
+# You can disable this feature by setting retry_files_enabled to False
+# and you can change the location of the files by setting retry_files_save_path
+{% if var_ansible_retry_files_enabled is defined and var_ansible_retry_files_enabled == 'False' and var_ansible_retry_files_save_path is defined and var_ansible_retry_files_save_path is not none %}
+retry_files_enabled = False
+retry_files_save_path = {{var_ansible_retry_files_save_path}}
+{% endif %}
+
+# squash actions
+# Ansible can optimise actions that call modules with list parameters
+# when looping. Instead of calling the module once per with_ item, the
+# module is called once with all items at once. Currently this only works
+# under limited circumstances, and only with parameters named 'name'.
+{% if var_ansible_squash_actions is defined and var_ansible_squash_actions is not none %}
+{% if var_ansible_squash_actions is not string and var_ansible_squash_actions is iterable %}
+squash_actions = {{var_ansible_squash_actions|join(',')}}
+{% else %}
+squash_actions = {{var_ansible_squash_actions}}
+{% endif %}{% endif %}
+
+{% if var_ansible_no_log is defined and ( var_ansible_no_log == 'True' or var_ansible_no_log == 'False') %}
+# prevents logging of task data, off by default
+no_log = {{var_ansible_no_log}}
+{% endif %}
+
+{% if var_ansible_no_target_syslog is defined and ( var_ansible_no_target_syslog == 'True' or var_ansible_no_target_syslog == 'False' ) %}
+# prevents logging of tasks, but only on the targets, data is still logged on the master/controller
+no_target_syslog = {{var_ansible_no_target_syslog}}
+{% endif %}
+
+{% if var_ansible_allow_world_readable_tmpfiles is defined and ( var_ansible_allow_world_readable_tmpfiles == 'False' or var_ansible_allow_world_readable_tmpfiles == 'True' ) %}
+# controls whether Ansible will raise an error or warning if a task has no
+# choice but to create world readable temporary files to execute a module on
+# the remote machine.  This option is False by default for security.  Users may
+# turn this on to have behaviour more like Ansible prior to 2.1.x.  See
+# https://docs.ansible.com/ansible/become.html#becoming-an-unprivileged-user
+# for more secure ways to fix this than enabling this option.
+allow_world_readable_tmpfiles = {{var_ansible_allow_world_readable_tmpfiles}}
+{% endif %}
+
+{% if var_ansible_var_compression_level is defined and var_ansible_var_compression_level|int and ( var_ansible_var_compression_level >= 0 and var_ansible_var_compression_level <= 9) %}
+# controls the compression level of variables sent to
+# worker processes. At the default of 0, no compression
+# is used. This value must be an integer from 0 to 9.
+var_compression_level = {{var_ansible_var_compression_level}}
+{% else %}
+# controls the compression level of variables sent to
+# worker processes. At the default of 0, no compression
+# is used. This value must be an integer from 0 to 9.
+var_compression_level = 0
+{% endif %}
+
+{% if var_ansible_module_compression is defined and ( var_ansible_module_compression == 'ZIP_STORED' or var_ansible_module_compression == 'ZIP_DEFLATED' ) %}
+# controls what compression method is used for new-style ansible modules when
+# they are sent to the remote system.  The compression types depend on having
+# support compiled into both the controller's python and the client's python.
+# The names should match with the python Zipfile compression types:
+# * ZIP_STORED (no compression. available everywhere)
+# * ZIP_DEFLATED (uses zlib, the default)
+# These values may be set per host via the ansible_module_compression inventory
+# variable
+module_compression = {{ZIP_DEFLATED}}
+{% endif %}
+
+{% if var_ansible_max_diff_size is defined and var_ansible_max_diff_size|int %}
+# This controls the cutoff point (in bytes) on --diff for files
+# set to 0 for unlimited (RAM may suffer!).
+max_diff_size = {{var_ansible_max_diff_size}}
+{% endif %}
+
+{% if var_ansible_merge_multiple_cli_flags is defined and ( var_ansible_merge_multiple_cli_flags == 'False' or var_ansible_merge_multiple_cli_flags == 'True' ) %}
+# This controls how ansible handles multiple --tags and --skip-tags arguments
+# on the CLI.  If this is True then multiple arguments are merged together.  If
+# it is False, then the last specified argument is used and the others are ignored.
+merge_multiple_cli_flags = {{var_ansible_merge_multiple_cli_flags}}
+{% endif %}
+
+{% if var_ansible_show_custom_stats is defined and ( var_ansible_show_custom_stats == 'True' or var_ansible_show_custom_stats == 'False' ) %}
+# Controls showing custom stats at the end, off by default
+show_custom_stats = {{var_ansible_show_custom_stats}}
+{% endif %}
+
+# Controlls which files to ignore when using a directory as inventory with
+# possibly multiple sources (both static and dynamic)
+#inventory_ignore_extensions = ~, .orig, .bak, .ini, .cfg, .retry, .pyc, .pyo
+{% if inventory_ignore_extensions is defined and inventory_ignore_extensions is not string and inventory_ignore_extensions is iterable %}
+inventory_ignore_extensions = {{var_ansible_inventory_ignore_extensions|join(', ')}}
+{% elif inventory_ignore_extensions is defined and inventory_ignore_extensions is string %}
+inventory_ignore_extensions = {{var_ansible_inventory_ignore_extensions}}
+{% endif %}
+
+
+# This family of modules use an alternative execution path optimized for network appliances
+# only update this setting if you know how this works, otherwise it can break module execution
+#network_group_modules=['eos', 'nxos', 'ios', 'iosxr', 'junos', 'vyos']
+
+[privilege_escalation]
+{% if var_ansible_privilege_escalation is defined and var_ansible_privilege_escalation is not none %}
+{% for key,value in var_ansible_privilege_escalation.iteritems() %}
+{% if value is defined and value is not none %}
+{{key}}={{value}}
+{% endif %}{% endfor %}{% else %}
+#become=True
+#become_method=sudo
+#become_user=root
+#become_ask_pass=False
+{% endif %}
+[paramiko_connection]
+
+{% if var_ansible_record_host_keys is defined  and ( var_ansible_record_host_keys == 'True' or var_ansible_record_host_keys == 'False' ) %}
+# uncomment this line to cause the paramiko connection plugin to not record new host
+# keys encountered.  Increases performance on new host additions.  Setting works independently of the
+# host key checking setting above.
+record_host_keys={{var_ansible_record_host_keys}}
+{% endif %}
+
+{% if var_ansible_pty is defined and ( var_ansible_pty == 'True' or var_ansible_pty == 'False' ) %}
+# by default, Ansible requests a pseudo-terminal for commands executed under sudo. Uncomment this
+# line to disable this behaviour.
+pty={{var_ansible_pty}}
+{% endif %}
+
+{% if var_ansible_look_for_keys is defined and ( var_ansible_look_for_keys == 'True' or var_ansible_look_for_keys == 'False' ) %}
+# paramiko will default to looking for SSH keys initially when trying to
+# authenticate to remote devices.  This is a problem for some network devices
+# that close the connection after a key failure.  Uncomment this line to
+# disable the Paramiko look for keys function
+look_for_keys = {{var_ansible_look_for_keys}}
+{% endif %}
+
+{% if var_ansible_host_key_auto_add is defined and ( var_ansible_host_key_auto_add == 'True' or var_ansible_host_key_auto_add == 'False' ) %}
+# When using persistent connections with Paramiko, the connection runs in a
+# background process.  If the host doesn't already have a valid SSH key, by
+# default Ansible will prompt to add the host key.  This will cause connections
+# running in background processes to fail.  Uncomment this line to have
+# Paramiko automatically add host keys.
+host_key_auto_add = {{var_ansible_host_key_auto_add}}
+{% endif %}
+
+[ssh_connection]
+
+{% if var_ansible_ssh_args is defined and var_ansible_ssh_args is not none %}
+# ssh arguments to use
+# Leaving off ControlPersist will result in poor performance, so use
+# paramiko on older platforms rather than removing it, -C controls compression use
+ssh_args = {{var_ansible_ssh_args}}
+{% endif %}
+
+# The base directory for the ControlPath sockets. 
+# This is the "%(directory)s" in the control_path option
+# 
+# Example: 
+# control_path_dir = /tmp/.ansible/cp
+#control_path_dir = ~/.ansible/cp
+
+# The path to use for the ControlPath sockets. This defaults to a hashed string of the hostname, 
+# port and username (empty string in the config). The hash mitigates a common problem users 
+# found with long hostames and the conventional %(directory)s/ansible-ssh-%%h-%%p-%%r format. 
+# In those cases, a "too long for Unix domain socket" ssh error would occur.
+#
+# Example:
+# control_path = %(directory)s/%%h-%%r
+#control_path =
+
+{% if var_ansible_pipelining is defined and ( var_ansible_pipelining == 'True' or var_ansible_pipelining == 'False' ) %}
+# Enabling pipelining reduces the number of SSH operations required to
+# execute a module on the remote server. This can result in a significant
+# performance improvement when enabled, however when using "sudo:" you must
+# first disable 'requiretty' in /etc/sudoers
+#
+# By default, this option is disabled to preserve compatibility with
+# sudoers configurations that have requiretty (the default on many distros).
+#
+pipelining = {{var_ansible_pipelining}}
+{% endif %}
+
+{% if var_ansible_scp_if_ssh is defined and ( var_ansible_scp_if_ssh == 'True' or var_ansible_scp_if_ssh == 'False' or var_ansible_scp_if_ssh == 'smart' ) %}
+# Control the mechanism for transferring files (old)
+#   * smart = try sftp and then try scp [default]
+#   * True = use scp only
+#   * False = use sftp only
+scp_if_ssh = {{var_ansible_scp_if_ssh}}
+{% endif %}
+
+{% if var_ansible_transfer_method is defined and ( var_ansible_transfer_method == 'sftp' or var_ansible_transfer_method == 'scp' or var_ansible_transfer_method == 'piped' or var_ansible_transfer_method == 'smart' ) %}
+# Control the mechanism for transferring files (new)
+# If set, this will override the scp_if_ssh option
+#   * sftp  = use sftp to transfer files
+#   * scp   = use scp to transfer files
+#   * piped = use 'dd' over SSH to transfer files
+#   * smart = try sftp, scp, and piped, in that order [default]
+transfer_method = {{var_ansible_transfer_method}}
+{% endif %}
+
+{% if var_ansiblesftp_batch_mode is defined and ( var_ansiblesftp_batch_mode == 'False' or var_ansiblesftp_batch_mode == 'True' ) %}
+# if False, sftp will not use batch mode to transfer files. This may cause some
+# types of file transfer failures impossible to catch however, and should
+# only be disabled if your sftp version has problems with batch mode
+sftp_batch_mode = {{var_ansiblesftp_batch_mode}}
+{% endif %}
+
+[persistent_connection]
+
+{% if var_ansible_persistent_connection is defined and var_ansible_persistent_connection is not none %}
+{% for key,value in var_ansible_persistent_connection.iteritems() %}
+{% if value|int %}
+{{key}} = {{value}}
+{% endif %}{% endfor %}{% endif %}
+
+[accelerate]
+#accelerate_port = 5099
+#accelerate_timeout = 30
+#accelerate_connect_timeout = 5.0
+
+# The daemon timeout is measured in minutes. This time is measured
+# from the last activity to the accelerate daemon.
+#accelerate_daemon_timeout = 30
+
+# If set to yes, accelerate_multi_key will allow multiple
+# private keys to be uploaded to it, though each user must
+# have access to the system via SSH to add a new key. The default
+# is "no".
+#accelerate_multi_key = yes
+
+[selinux]
+# file systems that require special treatment when dealing with security context
+# the default behaviour that copies the existing context or uses the user default
+# needs to be changed to use the file system dependent context.
+#special_context_filesystems=nfs,vboxsf,fuse,ramfs,9p
+
+# Set this to yes to allow libvirt_lxc connections to work without SELinux.
+#libvirt_lxc_noseclabel = yes
+
+[colors]
+{% if var_ansible_colors is defined and var_ansible_colors is not none %}
+{% for key,value  in var_ansible_colors.iteritems() %}
+{{key}}={{value}}
+{% endfor %}{% endif %}
+
+[diff]
+# Always print diff when running ( same as always running with -D/--diff )
+# always = no
+
+# Set how many context lines to show in diff
+# context = 3

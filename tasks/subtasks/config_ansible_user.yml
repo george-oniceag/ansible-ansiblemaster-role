@@ -1,0 +1,94 @@
+# FAIL if no user data is provided but conf_ansible_user is defined
+- name: 'FAIL - NO user specified'
+  fail:
+        msg: "ERROR !!! Variable conf_ansible_user is defined but data is null"
+  when: conf_ansible_user is defined and conf_ansible_user is none
+
+# FAIL if no group data is provided but conf_ansible_group is defined
+- name: "FAIL - NO group for :{{conf_ansible_user|default('ansible')}}: specified"
+  fail:
+        msg: "ERROR !!! Variable conf_ansible_group is defined but data is null"
+  when: conf_ansible_group is defined and conf_ansible_group is none
+
+# FAIL if no user_comment data is provided but conf_ansible_user_comment is defined
+- name: "FAIL - NO user comment for :{{conf_ansible_user|default('ansible')}}: specified"
+  fail:
+        msg: "ERROR !!! Variable conf_ansible_user_comment is defined but data is null"
+  when: conf_ansible_user_comment is defined and conf_ansible_user_comment is none
+
+# FAIL if no user_home data is provided but conf_ansible_user_home is defined
+- name: "FAIL - NO user home for :{{conf_ansible_user|default('ansible')}}: specified"
+  fail:
+        msg: "ERROR !!! Variable conf_ansible_user_home is defined but data is null"
+  when: conf_ansible_user_home is defined and conf_ansible_user_home is none
+
+# FAIL if incorrect data on varaibale conf_ansible_generate_sshkey or no definition
+- name: 'FAIL - INCORRECT data in variable conf_ansible_generate_sshkey'
+  fail:
+        msg: "ERROR !!! Specified data :{{conf_ansible_generate_sshkey}}: is not valid. Please use <yes/no> statement"
+  when:
+        - conf_ansible_generate_sshkey is defined
+        - not conf_ansible_generate_sshkey == "yes" and not conf_ansible_generate_sshkey == "no"
+
+# FAIL if incorect data provided on variable conf_ansible_user_pubkey but variable is defined
+- name: 'FAIL - INCORRECT data in variable conf_ansible_user_pubkey'
+  fail:
+        msg: "ERROR !!! Variable conf_ansible_user_pubkey is defined but data is null"
+  when: conf_ansible_user_pubkey is defined and conf_ansible_user_pubkey is none
+
+# CHECK & CONFIGURE primary ansible group - which will be used by ansible to run
+- name: 'CHECK and CONFIGURE ansible group'
+  group: name={{conf_ansible_group|default('ansible')}} state=present
+
+# CHECK & CONFIGURE primary ansible user \w new SSH key - which will be user by ansible to run
+- block:
+
+  # USER and SSH key
+  - name: 'CHECK and CONFIGURE ansible user & key'
+    user: name={{conf_ansible_user|default('ansible')}} state=present comment={{conf_ansible_user_comment}} group={{conf_ansible_group|default('ansible')}} home={{conf_ansible_user_home|default('/etc/ansible')}} generate_ssh_key={{conf_ansible_generate_sshkey|default('yes')}} ssh_key_bits={{conf_ansible_sshkey_bits|default('4096')}} ssh_key_comment={{conf_ansible_sshkey_comment|default(omit)}} ssh_key_type={{conf_ansible_sshkey_type|default('rsa')}} ssh_key_passphrase={{conf_ansible_sshkey_passwd|default(omit)}} shell=/bin/bash
+
+  # CHECK ssh key creation
+  - name: 'CHECK if SSH key was generated'
+    stat: path="{{conf_ansible_user_home|default('/etc/ansible')}}/.ssh/id_rsa.pub"
+    register: ck_ansible_sshkey
+
+  - name: 'GET SSH public key that was previosly generated'
+    command: cat {{conf_ansible_user_home|default('/etc/ansible')}}/.ssh/id_rsa.pub
+    register: get_ansible_sshkey
+    changed_when: none
+    when: ck_ansible_sshkey.stat.exists == true
+
+  # ENSURE new ssh key is in authorized_keys file
+  - name: 'Add new public SSH key to authorized_keys'
+    authorized_key: exclusive=yes key={{get_ansible_sshkey.stdout}} user={{conf_ansible_user|default('ansible')}} manage_dir=yes state=present
+    when: ck_ansible_sshkey.stat.exists == true and get_ansible_sshkey.stdout is defined and get_ansible_sshkey.stdout is not none
+
+  when:
+        - conf_ansible_generate_sshkey is not defined or conf_ansible_generate_sshkey == 'yes'
+        - conf_ansible_user_pubkey is not defined
+
+# CHECK & CONFIGURE primary ansible user \w existing SSH key - which will be user by ansible to run
+- block:
+
+  - name: 'CHECK and CONFIGURE ansible user'
+    user: name={{conf_ansible_user|default('ansible')}} state=present comment={{conf_ansible_user_comment}} group={{conf_ansible_group|default('ansible')}} home={{conf_ansible_user_home|default('/etc/ansible')}}
+
+  - name: "CHECK and CREATE .ssh directory for user: {{conf_ansible_user|default('ansible')}}"
+    file: dest="{{conf_ansible_user_home|default('/etc/ansible')}}/.ssh" state=directory owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}} mode=0600 shell=/bin/bash
+
+  - name: 'Add public SSH key to the .ssh file for future usage'
+    vars:
+        var_to_file: "{{conf_ansible_user_pubkey}}"
+    template: src=var_to_file.j2 dest={{conf_ansible_user_home|default('/etc/ansible')}}/.ssh/id_rsa.pub owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}} mode=0400
+    when: conf_ansible_user_pubkey is defined
+
+  - name: 'Add publick SSH key to authorized_keys'
+    authorized_key: exclusive=yes key={{conf_ansible_user_pubkey}} user={{conf_ansible_user|default('ansible')}} manage_dir=yes state=present
+    when: conf_ansible_user_pubkey is defined and conf_ansible_user_pubkey is not none
+
+  - name: 'Add private SSH key to .ssh '
+    copy: src={{conf_ansible_user_home|default('/etc/ansible')|regex_replace('^/(.*)$', '\\1')}}/ssh/id_rsa dest="{{conf_ansible_user_home|default('/etc/ansible')}}/.ssh/id_rsa" owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}} mode=0400
+
+  when: ( conf_ansible_generate_sshkey is defined and conf_ansible_generate_sshkey == 'no' ) or ( conf_ansible_user_pubkey is defined )
+
+

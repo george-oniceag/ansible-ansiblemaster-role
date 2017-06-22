@@ -1,0 +1,8 @@
+- ansible-server: run the whole role
+	- ansible-install : install ansible pkgs 
+	- ansible-configure:  fuly configure ansible and host machine
+		- ansible-configure-user: configure ansbile user 
+		- ansible-configure-structure: configure directory structure and permissions	
+		- ansible-configure-logging: configure the logging part of ansible + logrotate
+
+

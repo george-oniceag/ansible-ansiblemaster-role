@@ -1,0 +1,39 @@
+# CHECK & CREATE ansible loc directory
+- name: 'CHECK & CREATE ansible log directory '
+  file: dest={{var_ansible_log_path}} state=directory owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}} mode=0660
+  when: var_ansible_log_path is defined
+  tags: ['ansible-configure-structure']
+
+- name: 'CHECK & ENSURE logrotate.d directory existance'
+  file: dest=/etc/logrotate.d state=directory owner=root group=root mode=0755
+
+- name: 'CHECK existance of logrotate.conf'
+  stat: path=/etc/logrotate.conf
+  register: ck_logrotate_conf
+
+- name: 'CHECK & ENSURE logrotate.conf include statements'
+  lineinfile: dest=/etc/logrotate.conf regexp='^include(.*)\/etc\/logrotate.d(.*)$' line='include /etc/logrotate.d'
+  when: ck_logrotate_conf.stat.exists == true
+
+- name: 'CHECK & ADAPT logrotate policy for ansible logs'
+  vars:
+     vr_logrotate:
+      - vr_logrotate_location: '{{var_ansible_log_path}}/.*' 
+        vr_logrotate_interval: '{{var_ansible_logrotate_interval}}'
+        vr_logrotate_compression_enable: '{{var_ansible_logrotate_compression_enabled}}'
+        vr_logrotate_compression_command: '{{var_ansible_logrotate_compression_command|default(omit)}}'
+        vr_logrotate_compression_options: '{{var_ansible_logrotate_compression_options| default(omit)}}'
+        vr_logrotate_extension: '{{var_ansible_logrotate_extension|default(omit)}}'
+        vr_logrotate_method: '{{var_ansible_logrotate_method|default(omit)}}'
+        vr_logrotate_create: '{{var_ansible_logrotate_create|default(omit)}}'
+        vr_logrotate_mail:   '{{var_ansible_logrotate_mail|default(omit)}}'
+        vr_logrotate_missingok: '{{var_ansible_logrotate_missingok|default(omit)}}'
+        vr_logrotate_olddir: '{{var_ansible_logrotate_olddir|default(omit)}}'
+        vr_logrotate_postrotate: '{{var_ansible_logrotate_postrotate|default(omit)}}'
+        vr_logrotate_prerotate: '{{var_ansible_logrotate_prerotate|default(omit)}}'
+        vr_logrotate_lastaction: '{{var_ansible_logrotate_lastactin|default(omit)}}'
+        vr_logrotate_rtcount: '{{var_ansible_logrotate_rtcount|default(omit)}}'
+        vr_logrotate_size: '{{var_ansible_logrotate_size|default(omit)}}'
+        vr_logrotate_sharedscripts: '{{var_ansible_logrotate_sharedscripts|default(omit)}}'
+  template: src=etc/logrotate.d/logrotate.j2 dest=/etc/logrotate.d/ansible mode=0644 owner=root group=root
+

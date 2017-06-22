@@ -1,0 +1,12 @@
+# Install neccesary OS pkg based on OS type
+- name: Install OS specifig pkg
+  include: "{{ansible_os_family|lower}}_install.yml"
+  become: true
+  tags: ['ansible-install','ansible-server']
+
+- name: Configure Ansible
+  include: "{{ansible_os_family|lower}}_configure.yml"
+  become: true
+  tags: ['ansible-configure','ansible-server']
+
+
