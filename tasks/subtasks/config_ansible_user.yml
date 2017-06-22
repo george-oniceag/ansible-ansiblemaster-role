@@ -91,4 +91,21 @@
 
   when: ( conf_ansible_generate_sshkey is defined and conf_ansible_generate_sshkey == 'no' ) or ( conf_ansible_user_pubkey is defined )
 
+# Check wheather the /etc/sudoers.d directory is included in the reading of sudo config files. Change will be made in the main /etc/sudoers file -- add line comment if not pressent
+- name: 'CHECK sudoers include sudoers.d file - comment line'
+  lineinfile:
+        dest: /etc/sudoers
+        line: '## Read drop-in files from /etc/sudoers.d (the # here does not mean a comment)'
+        regexp: "^## (Read drop-in .*)|(Include subfiles)"
+        insertafter: EOF
 
+# Check wheather the /etc/sudoers.d directory is included in the reading of sudo config files. Change will be made in the main /etc/sudoers file  - add include statement if not pressent
+- name: 'CHECK sudoers include sudoers.d file - command line'
+  lineinfile:
+        dest: /etc/sudoers
+        line: '#includedir /etc/sudoers.d'
+        regexp: "^#includedir .*"
+        insertafter: EOF
+
+- name: "Configure SUDO rights for ansible user"
+  template: src='etc/sudoers.d/ansible.j2' dest='/etc/sudoers.d/ansible' validate='visudo -cf %s' owner=root group=root mode=0440

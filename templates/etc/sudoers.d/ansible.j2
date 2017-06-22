@@ -1,0 +1,5 @@
+Defaults !requiretty
+
+# Provide full sudo rights to ansible user
+{{conf_ansible_user|default('ansible')}} ALL=(ALL) NOPASSWD: ALL
+

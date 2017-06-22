@@ -1,6 +1,6 @@
 # CHECK & CREATE ansible loc directory
 - name: 'CHECK & CREATE ansible log directory '
-  file: dest={{var_ansible_log_path}} state=directory owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}} mode=0660
+  file: dest={{var_ansible_log_path}} state=directory owner={{conf_ansible_user|default('ansible')}} group={{conf_ansible_group|default('ansible')}} mode=0770
   when: var_ansible_log_path is defined
   tags: ['ansible-configure-structure']
 
